@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚛 HaulVerify - Broker BS Detector</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        body {
+            width: 100vw;
+            height: 100vh;
+            margin: 0;
+            padding: 20px;
+            overflow: auto;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-attachment: fixed;
+            background-size: cover;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 500px;
+            width: calc(100% - 40px);
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            font-size: 16px;
+            margin-bottom: 32px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px 16px;
+            font-size: 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            width: 100%;
+            padding: 16px;
+            font-size: 18px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .results {
+            margin-top: 30px;
+            padding: 24px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border: 2px solid #e9ecef;
+            display: none;
+        }
+
+        .results.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .results h3 {
+            margin-bottom: 16px;
+            color: #333;
+            font-size: 20px;
+        }
+
+        .result-item {
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .result-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .result-label {
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .result-value {
+            font-size: 16px;
+            color: #212529;
+            font-weight: 500;
+        }
+
+        .risk-badge {
+            display: block;
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-weight: 800;
+            font-size: 20px;
+            margin-bottom: 24px;
+            text-align: center;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .risk-low {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border: 3px solid #1e7e34;
+        }
+
+        .risk-high {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+            border: 3px solid #bd2130;
+        }
+
+        .risk-caution {
+            background: linear-gradient(135deg, #ffc107 0%, #ff8c00 100%);
+            color: #333;
+            border: 3px solid #e0a800;
+        }
+
+        .error {
+            margin-top: 20px;
+            padding: 16px;
+            background: #f8d7da;
+            color: #721c24;
+            border-radius: 8px;
+            border: 2px solid #f5c6cb;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        .loading {
+            text-align: center;
+            color: #667eea;
+            font-weight: 600;
+            margin-top: 16px;
+            display: none;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 24px;
+            }
+
+            h1 {
+                font-size: 32px;
+            }
+
+            .subtitle {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L4 6V11C4 16.55 7.16 21.74 12 23C16.84 21.74 20 16.55 20 11V6L12 2Z" fill="#667eea"/>
+                <path d="M9 12L11 14L15 10" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            HaulVerify
+        </h1>
+        <p class="subtitle">Check a broker's MC number</p>
+
+        <form id="checkForm">
+            <div class="input-group">
+                <label for="mcNumber">MC Number</label>
+                <input 
+                    type="text" 
+                    id="mcNumber" 
+                    placeholder="e.g., 139016" 
+                    required
+                >
+            </div>
+            <button type="submit" id="checkBtn">Check Broker</button>
+        </form>
+
+        <p style="text-align: center; font-size: 13px; color: #6c757d; margin-top: 16px; margin-bottom: 0;">
+            One bad broker can cost you $5,000+. Check before you book.
+        </p>
+
+        <div class="loading" id="loading">🔍 Checking broker...</div>
+        <div class="error" id="error"></div>
+        <div class="results" id="results"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById('checkForm');
+        const loading = document.getElementById('loading');
+        const error = document.getElementById('error');
+        const results = document.getElementById('results');
+        const checkBtn = document.getElementById('checkBtn');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const mcNumber = document.getElementById('mcNumber').value.trim();
+            
+            // Clear previous results
+            error.classList.remove('show');
+            results.classList.remove('show');
+            loading.classList.add('show');
+            checkBtn.disabled = true;
+
+            console.log('🚀 Fetching MC Number:', mcNumber);
+
+            try {
+                // FMCSA API Key
+                const webKey = 'c9a5e695656ae72cb482e917db8c52bd2dd83bcc';
+                
+                // Use the correct FMCSA API endpoint with docket-number path
+                const apiUrl = `https://mobile.fmcsa.dot.gov/qc/services/carriers/docket-number/${mcNumber}?webKey=${webKey}`;
+                console.log('📡 API URL:', apiUrl);
+
+                const response = await fetch(apiUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+
+                console.log('📥 Response Status:', response.status, response.statusText);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.log('📥 Error Response Body:', errorText);
+                    throw new Error(`API returned ${response.status}: ${response.statusText}`);
+                }
+
+                const apiData = await response.json();
+
+                // Log the FULL response so we can see what we're getting
+                console.log('✅ FULL API RESPONSE (JSON string):');
+                console.log(JSON.stringify(apiData, null, 2));
+                console.log('✅ FULL API RESPONSE (object):');
+                console.log(apiData);
+
+                // Parse and display
+                const data = parseAPIResponse(apiData, mcNumber);
+                console.log('📊 Parsed Data:', data);
+                
+                displayResults(data);
+                
+            } catch (err) {
+                console.error('❌ Error:', err);
+                showError(err.message);
+            } finally {
+                loading.classList.remove('show');
+                checkBtn.disabled = false;
+            }
+        });
+
+        function parseAPIResponse(apiData, mcNumber) {
+            // FMCSA returns content as an ARRAY
+            console.log('🔍 Full API Data:', apiData);
+            
+            if (!apiData.content || !Array.isArray(apiData.content) || apiData.content.length === 0) {
+                throw new Error('No carrier data found for this MC number');
+            }
+            
+            const carrier = apiData.content[0].carrier;
+            console.log('🔍 Carrier object:', carrier);
+            console.log('🔍 Broker Authority Status:', carrier.brokerAuthorityStatus);
+            console.log('🔍 Allowed to Operate:', carrier.allowedToOperate);
+            
+            // Check broker authority status
+            const brokerStatus = carrier.brokerAuthorityStatus;
+            const isAllowedToOperate = carrier.allowedToOperate === 'Y';
+            
+            // Determine authority type based on status codes
+            let authorityType = '';
+            let authorityClass = '';
+            let headerTitle = '';
+            let headerEmoji = '';
+            
+            if (brokerStatus === 'A') {
+                // Active Broker - GOOD
+                authorityType = '✓ Verified Broker';
+                authorityClass = 'broker';
+                headerTitle = 'Broker Found';
+                headerEmoji = '✅';
+            } else if (brokerStatus === 'N') {
+                // Not a broker - BAD (carrier pretending to be broker)
+                authorityType = '⚠️ CARRIER (Not a Broker)';
+                authorityClass = 'carrier';
+                headerTitle = 'Carrier Found';
+                headerEmoji = '⚠️';
+            } else if (brokerStatus === 'I') {
+                // Inactive broker authority
+                authorityType = '⚠️ INACTIVE BROKER AUTHORITY';
+                authorityClass = 'inactive';
+                headerTitle = 'Inactive Broker';
+                headerEmoji = '⚠️';
+            } else {
+                authorityType = 'Unknown Authority';
+                authorityClass = 'unknown';
+                headerTitle = 'Carrier Found';
+                headerEmoji = '❓';
+            }
+
+            return {
+                companyName: carrier.legalName || 'Not Available',
+                authorityType: authorityType,
+                authorityClass: authorityClass,
+                headerTitle: headerTitle,
+                headerEmoji: headerEmoji,
+                mcNumber: mcNumber,
+                dotNumber: carrier.dotNumber || 'N/A',
+                allowedToOperate: isAllowedToOperate,
+                brokerStatus: brokerStatus,
+                rawData: carrier
+            };
+        }
+
+        function displayResults(data) {
+            // Determine risk level and badge
+            let riskBadge = '';
+            let riskClass = '';
+            
+            if (data.brokerStatus === 'N') {
+                // Not a broker - HIGH RISK
+                riskBadge = '🔴 HIGH RISK - NOT A BROKER';
+                riskClass = 'risk-high';
+            } else if (!data.allowedToOperate) {
+                // Not allowed to operate - HIGH RISK
+                riskBadge = '🔴 HIGH RISK - NOT AUTHORIZED';
+                riskClass = 'risk-high';
+            } else if (data.brokerStatus === 'I') {
+                // Inactive broker - CAUTION
+                riskBadge = '🟡 CAUTION - INACTIVE BROKER';
+                riskClass = 'risk-caution';
+            } else if (data.brokerStatus === 'A' && data.allowedToOperate) {
+                // Verified active broker - LOW RISK
+                riskBadge = '🟢 LOW RISK - VERIFIED BROKER';
+                riskClass = 'risk-low';
+            } else {
+                // Unknown status
+                riskBadge = '⚠️ UNKNOWN RISK';
+                riskClass = 'risk-caution';
+            }
+
+            // Set authority style based on class
+            let authorityStyle = '';
+            if (data.authorityClass === 'broker') {
+                // Active broker - GREEN
+                authorityStyle = 'color: #28a745; font-weight: bold; font-size: 18px;';
+            } else if (data.authorityClass === 'carrier') {
+                // Not a broker (carrier) - RED
+                authorityStyle = 'color: #dc3545; font-weight: bold; font-size: 18px;';
+            } else if (data.authorityClass === 'inactive') {
+                // Inactive broker - ORANGE/YELLOW
+                authorityStyle = 'color: #ff8c00; font-weight: bold; font-size: 18px;';
+            }
+
+            // Set operating status style
+            let operatingStyle = data.allowedToOperate ? 'color: #28a745; font-weight: 600;' : 'color: #dc3545; font-weight: 600;';
+            let operatingText = data.allowedToOperate ? '✓ Allowed to Operate' : '❌ NOT Allowed to Operate';
+            
+            results.innerHTML = `
+                <h3>${data.headerEmoji} ${data.headerTitle}</h3>
+                
+                <div class="risk-badge ${riskClass}">
+                    ${riskBadge}
+                </div>
+                
+                <div class="result-item">
+                    <div class="result-label">Company Name</div>
+                    <div class="result-value">${data.companyName}</div>
+                </div>
+
+                <div class="result-item">
+                    <div class="result-label">Operating Authority</div>
+                    <div class="result-value" style="${authorityStyle}">${data.authorityType}</div>
+                </div>
+
+                <div class="result-item">
+                    <div class="result-label">MC Number</div>
+                    <div class="result-value">${data.mcNumber}</div>
+                </div>
+
+                <div class="result-item">
+                    <div class="result-label">DOT Number</div>
+                    <div class="result-value">${data.dotNumber}</div>
+                </div>
+
+                <div class="result-item">
+                    <div class="result-label">Operating Status</div>
+                    <div class="result-value" style="${operatingStyle}">${operatingText}</div>
+                </div>
+            `;
+            
+            results.classList.add('show');
+        }
+
+        function showError(message) {
+            error.textContent = '❌ ' + message;
+            error.classList.add('show');
+        }
+
+        // Allow Enter key to submit
+        document.getElementById('mcNumber').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                form.dispatchEvent(new Event('submit'));
+            }
+        });
+    </script>
+</body>
+</html>
+
