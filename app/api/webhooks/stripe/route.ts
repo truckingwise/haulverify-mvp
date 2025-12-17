@@ -65,8 +65,8 @@ export async function POST(request: Request) {
           console.log('👤 User may already exist, updating metadata...')
           
           // User exists - update their metadata to grant access
-          const { data: users } = await supabaseAdmin.auth.admin.listUsers()
-          const existingUser = users?.users?.find(u => u.email === customerEmail)
+          const { data: usersData } = await supabaseAdmin.auth.admin.listUsers()
+          const existingUser = usersData?.users?.find((u: any) => u.email === customerEmail)
           
           if (existingUser) {
             await supabaseAdmin.auth.admin.updateUserById(existingUser.id, {
