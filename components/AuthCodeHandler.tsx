@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { createClient } from '@/lib/supabase'
 
 export default function AuthCodeHandler() {
   const searchParams = useSearchParams()
@@ -12,7 +13,6 @@ export default function AuthCodeHandler() {
   useEffect(() => {
     const code = searchParams.get('code')
     const accessToken = searchParams.get('access_token')
-    const refreshToken = searchParams.get('refresh_token')
     const error = searchParams.get('error')
     const errorDescription = searchParams.get('error_description')
     
@@ -23,19 +23,18 @@ export default function AuthCodeHandler() {
       return
     }
 
+    // Use the SAME client as login page (critical for PKCE!)
+    const supabase = createClient()
+
     // If we have tokens directly (implicit flow), set session
     if (accessToken) {
+      if (processedRef.current) return
       processedRef.current = true
       setStatus('processing')
       
       const setSession = async () => {
         try {
-          const { createClient } = await import('@supabase/supabase-js')
-          const supabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-          )
-          
+          const refreshToken = searchParams.get('refresh_token')
           const { error } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken || '',
@@ -69,41 +68,26 @@ export default function AuthCodeHandler() {
     
     const handleAuth = async () => {
       try {
-        const { createClient } = await import('@supabase/supabase-js')
-        const supabase = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-        )
+        console.log('🔐 Exchanging code for session (home page handler)...')
         
-        // First try OTP verification (works without PKCE)
-        const { data: otpData, error: otpError } = await supabase.auth.verifyOtp({
-          token_hash: code,
-          type: 'magiclink',
-        })
-        
-        if (!otpError && otpData.session) {
-          setStatus('success')
-          setTimeout(() => {
-            window.location.href = '/tool'
-          }, 500)
-          return
-        }
-        
-        // If OTP fails, try code exchange
+        // Use the browser client which has the PKCE verifier stored
         const { data, error: authError } = await supabase.auth.exchangeCodeForSession(code)
         
+        console.log('📦 Exchange result:', { hasSession: !!data?.session, error: authError?.message })
+        
         if (!authError && data?.session) {
+          console.log('✅ Session created!')
           setStatus('success')
           setTimeout(() => {
             window.location.href = '/tool'
           }, 500)
           return
         }
-        
-        // Both failed
-        console.error('Auth failed:', otpError, authError)
+
+        // Exchange failed
+        console.error('❌ Code exchange failed:', authError)
         setStatus('error')
-        setErrorMsg('Login link expired or already used. Please request a new one.')
+        setErrorMsg(authError?.message || 'Login link expired or already used.')
         
       } catch (err: any) {
         console.error('Auth exception:', err)
