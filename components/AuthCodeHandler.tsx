@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { createClient } from '@supabase/supabase-js'
 
 export default function AuthCodeHandler() {
   const searchParams = useSearchParams()
@@ -12,6 +11,8 @@ export default function AuthCodeHandler() {
 
   useEffect(() => {
     const code = searchParams.get('code')
+    const accessToken = searchParams.get('access_token')
+    const refreshToken = searchParams.get('refresh_token')
     const error = searchParams.get('error')
     const errorDescription = searchParams.get('error_description')
     
@@ -19,6 +20,44 @@ export default function AuthCodeHandler() {
     if (error) {
       setStatus('error')
       setErrorMsg(errorDescription || error)
+      return
+    }
+
+    // If we have tokens directly (implicit flow), set session
+    if (accessToken) {
+      processedRef.current = true
+      setStatus('processing')
+      
+      const setSession = async () => {
+        try {
+          const { createClient } = await import('@supabase/supabase-js')
+          const supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+          )
+          
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken || '',
+          })
+          
+          if (error) {
+            setStatus('error')
+            setErrorMsg(error.message)
+            return
+          }
+          
+          setStatus('success')
+          setTimeout(() => {
+            window.location.href = '/tool'
+          }, 500)
+        } catch (err: any) {
+          setStatus('error')
+          setErrorMsg(err?.message || 'Failed to set session')
+        }
+      }
+      
+      setSession()
       return
     }
     
@@ -30,60 +69,46 @@ export default function AuthCodeHandler() {
     
     const handleAuth = async () => {
       try {
-        // Create a fresh Supabase client
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-        const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+        const { createClient } = await import('@supabase/supabase-js')
+        const supabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        )
         
-        if (!supabaseUrl || !supabaseKey) {
-          setStatus('error')
-          setErrorMsg('Configuration error')
-          return
-        }
-
-        const supabase = createClient(supabaseUrl, supabaseKey)
+        // First try OTP verification (works without PKCE)
+        const { data: otpData, error: otpError } = await supabase.auth.verifyOtp({
+          token_hash: code,
+          type: 'magiclink',
+        })
         
-        // Try to exchange the code
-        const { data, error: authError } = await supabase.auth.exchangeCodeForSession(code)
-        
-        if (authError) {
-          // If PKCE fails, the code might be a magic link token
-          // Try verifying as OTP token
-          console.log('Code exchange failed, trying OTP verify...')
-          
-          const { data: otpData, error: otpError } = await supabase.auth.verifyOtp({
-            token_hash: code,
-            type: 'email',
-          })
-          
-          if (otpError) {
-            console.error('Both methods failed')
-            setStatus('error')
-            setErrorMsg('Link expired or already used. Please request a new login link.')
-            return
-          }
-          
-          if (otpData.session) {
-            setStatus('success')
-            setTimeout(() => {
-              window.location.href = '/tool'
-            }, 500)
-            return
-          }
-        }
-        
-        if (data?.session) {
+        if (!otpError && otpData.session) {
           setStatus('success')
           setTimeout(() => {
             window.location.href = '/tool'
           }, 500)
-        } else {
-          setStatus('error')
-          setErrorMsg('Could not create session. Please try again.')
+          return
         }
+        
+        // If OTP fails, try code exchange
+        const { data, error: authError } = await supabase.auth.exchangeCodeForSession(code)
+        
+        if (!authError && data?.session) {
+          setStatus('success')
+          setTimeout(() => {
+            window.location.href = '/tool'
+          }, 500)
+          return
+        }
+        
+        // Both failed
+        console.error('Auth failed:', otpError, authError)
+        setStatus('error')
+        setErrorMsg('Login link expired or already used. Please request a new one.')
+        
       } catch (err: any) {
         console.error('Auth exception:', err)
         setStatus('error')
-        setErrorMsg('Link expired or already used. Please request a new login link.')
+        setErrorMsg('Login link expired or already used. Please request a new one.')
       }
     }
     
