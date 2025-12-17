@@ -29,10 +29,14 @@ export default function AuthCodeHandler() {
     const handleAuth = async () => {
       const supabase = createClient()
 
-      // Handle error from Supabase
+      // Handle error from Supabase or app
       if (error) {
         setStatus('error')
-        setErrorMsg(searchParams.get('error_description') || error)
+        if (error === 'no_access') {
+          setErrorMsg('Your account doesn\'t have V1 access. Please purchase HaulVerify or contact support@haulverify.com')
+        } else {
+          setErrorMsg(searchParams.get('error_description') || error)
+        }
         return
       }
 
@@ -121,13 +125,15 @@ export default function AuthCodeHandler() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </div>
-            <p className="text-white text-xl font-semibold">Sign in failed</p>
+            <p className="text-white text-xl font-semibold">
+              {searchParams.get('error') === 'no_access' ? 'No Access' : 'Sign in failed'}
+            </p>
             <p className="text-purple-200 mt-2 text-sm">{errorMsg}</p>
             <a 
-              href="/login" 
+              href={searchParams.get('error') === 'no_access' ? '/checkout' : '/login'}
               className="inline-block mt-6 px-6 py-3 bg-white text-purple-900 font-semibold rounded-lg hover:bg-purple-100"
             >
-              Request New Link
+              {searchParams.get('error') === 'no_access' ? 'Get HaulVerify V1' : 'Try Again'}
             </a>
           </>
         )}
