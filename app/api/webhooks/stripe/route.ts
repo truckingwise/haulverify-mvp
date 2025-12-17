@@ -3,14 +3,16 @@ import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createAdminClient } from '@/lib/supabase-admin'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
-
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 export async function POST(request: Request) {
   console.log('🔔 Stripe webhook received')
   
   try {
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
+    
     const body = await request.text()
     const headersList = headers()
     const signature = headersList.get('stripe-signature')
@@ -20,26 +22,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No signature' }, { status: 400 })
     }
 
-    // Verify webhook signature
     let event: Stripe.Event
     try {
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
       console.log('✅ Webhook signature verified')
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Unknown error'
-      console.error('❌ Webhook signature verification failed:', message)
+    } catch (err) {
+      console.error('❌ Webhook signature verification failed')
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
     }
 
     console.log('📦 Event type:', event.type)
 
-    // Handle checkout.session.completed
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session
       
       console.log('💳 Checkout session completed:', session.id)
       console.log('📧 Customer email:', session.customer_email)
-      console.log('💰 Amount:', session.amount_total)
 
       const customerEmail = session.customer_email
       const stripeCustomerId = session.customer as string
@@ -52,7 +50,6 @@ export async function POST(request: Request) {
       try {
         const supabaseAdmin = createAdminClient()
 
-        // Try to create user - will fail if already exists
         const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
           email: customerEmail,
           email_confirm: true,
@@ -64,43 +61,26 @@ export async function POST(request: Request) {
         })
 
         if (createError) {
-          // User likely already exists - that's OK
-          console.log('👤 User may already exist, skipping creation:', createError.message)
+          console.log('👤 User may already exist:', createError.message)
         } else {
           console.log('✅ Created new user:', newUser.user?.id)
         }
 
         console.log('🎉 Webhook processed for:', customerEmail)
         
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'Unknown error'
-        console.error('❌ Supabase error:', message)
-        // Still return 200 to Stripe so it doesn't retry
+      } catch (err) {
+        console.error('❌ Supabase error')
         return NextResponse.json({ 
           received: true, 
-          warning: 'User provisioning had issues, check logs' 
+          warning: 'User provisioning had issues' 
         }, { status: 200 })
       }
     }
 
-    // Handle other event types if needed
-    if (event.type === 'checkout.session.expired') {
-      console.log('⏰ Checkout session expired')
-    }
-
-    if (event.type === 'payment_intent.payment_failed') {
-      console.log('❌ Payment failed')
-    }
-
     return NextResponse.json({ received: true }, { status: 200 })
 
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    console.error('❌ Webhook error:', message)
+  } catch (err) {
+    console.error('❌ Webhook error')
     return NextResponse.json({ error: 'Webhook handler failed' }, { status: 500 })
   }
 }
-
-// Needed to handle raw body for signature verification
-export const dynamic = 'force-dynamic'
-export const runtime = 'nodejs'

@@ -3,10 +3,9 @@ import Stripe from 'stripe'
 
 export const runtime = 'nodejs'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
-
 export async function POST() {
   try {
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
     
     const session = await stripe.checkout.sessions.create({
@@ -19,7 +18,7 @@ export async function POST() {
               name: 'HaulVerify V1 Lifetime Access',
               description: 'One-time payment for lifetime access to HaulVerify V1. Check brokers instantly with red/yellow/green risk signals.',
             },
-            unit_amount: 4700, // $47.00 in cents
+            unit_amount: 4700,
           },
           quantity: 1,
         },
@@ -38,5 +37,3 @@ export async function POST() {
     )
   }
 }
-
-
