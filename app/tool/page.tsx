@@ -26,6 +26,15 @@ export default function ToolPage() {
           return
         }
         
+        // Check if user has V1 access (paid)
+        const hasAccess = user.user_metadata?.has_v1_access === true
+        if (!hasAccess) {
+          console.log('User does not have V1 access')
+          await supabase.auth.signOut()
+          router.push('/?error=no_access')
+          return
+        }
+        
         setUser(user)
       } catch (err) {
         console.error('Auth check failed:', err)
