@@ -62,22 +62,24 @@ export async function POST(request: Request) {
         })
 
         if (createError) {
-          console.log('👤 User may already exist, updating metadata...')
+          console.log('👤 User already exists, updating metadata...')
           
-          // User exists - update their metadata to grant access
-          const { data: usersData } = await supabaseAdmin.auth.admin.listUsers()
-          const existingUser = usersData?.users?.find((u: any) => u.email === customerEmail)
-          
-          if (existingUser) {
-            await supabaseAdmin.auth.admin.updateUserById(existingUser.id, {
-              user_metadata: {
-                ...existingUser.user_metadata,
-                has_v1_access: true,
-                stripe_customer_id: stripeCustomerId,
-                purchase_date: new Date().toISOString(),
-              },
-            })
-            console.log('✅ Updated existing user with V1 access:', existingUser.id)
+          // User exists - find and update their metadata
+          const listResult = await supabaseAdmin.auth.admin.listUsers()
+          if (listResult.data && listResult.data.users) {
+            for (const user of listResult.data.users) {
+              if (user.email === customerEmail) {
+                await supabaseAdmin.auth.admin.updateUserById(user.id, {
+                  user_metadata: {
+                    has_v1_access: true,
+                    stripe_customer_id: stripeCustomerId,
+                    purchase_date: new Date().toISOString(),
+                  },
+                })
+                console.log('✅ Updated existing user with V1 access:', user.id)
+                break
+              }
+            }
           }
         } else {
           console.log('✅ Created new user:', newUser.user?.id)
