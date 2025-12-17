@@ -1,10 +1,11 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  // Check for Supabase auth cookies (simplified check for Edge Runtime)
-  // The actual auth validation happens in the page/route
-  const hasAuthCookie = request.cookies.getAll().some(
-    cookie => cookie.name.includes('supabase') && cookie.name.includes('auth')
+  // Check for any Supabase auth-related cookies
+  const cookies = request.cookies.getAll()
+  const hasAuthCookie = cookies.some(cookie => 
+    cookie.name.startsWith('sb-') || 
+    cookie.name.includes('supabase')
   )
 
   // Protected routes - require auth cookie

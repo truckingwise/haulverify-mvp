@@ -1,4 +1,4 @@
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse, type NextRequest } from 'next/server'
 
@@ -24,17 +24,22 @@ export async function GET(request: NextRequest) {
             get(name: string) {
               return cookieStore.get(name)?.value
             },
-            set(name: string, value: string, options: CookieOptions) {
-              cookieStore.set({ name, value, ...options })
+            set(name: string, value: string, options: any) {
+              cookieStore.set(name, value, options)
             },
-            remove(name: string, options: CookieOptions) {
-              cookieStore.delete(name)
+            remove(name: string, options: any) {
+              cookieStore.set(name, '', { ...options, maxAge: 0 })
             },
           },
         }
       )
 
-      await supabase.auth.exchangeCodeForSession(code)
+      const { error } = await supabase.auth.exchangeCodeForSession(code)
+      
+      if (error) {
+        console.error('Auth error:', error)
+        return NextResponse.redirect(`${origin}/login?error=auth_failed`)
+      }
     }
   }
 
