@@ -11,92 +11,82 @@ export default function AuthCodeHandler() {
   const processedRef = useRef(false)
 
   useEffect(() => {
+    // Check if there's anything to process
     const code = searchParams.get('code')
-    const accessToken = searchParams.get('access_token')
     const error = searchParams.get('error')
-    const errorDescription = searchParams.get('error_description')
+    const hash = typeof window !== 'undefined' ? window.location.hash : ''
+    const hasTokenInHash = hash.includes('access_token')
     
-    // Handle error from Supabase
-    if (error) {
-      setStatus('error')
-      setErrorMsg(errorDescription || error)
-      return
+    if (!code && !error && !hasTokenInHash) {
+      return // Nothing to process
     }
 
-    // Use the SAME client as login page (critical for PKCE!)
-    const supabase = createClient()
+    if (processedRef.current) return
+    processedRef.current = true
 
-    // If we have tokens directly (implicit flow), set session
-    if (accessToken) {
-      if (processedRef.current) return
-      processedRef.current = true
-      setStatus('processing')
-      
-      const setSession = async () => {
-        try {
-          const refreshToken = searchParams.get('refresh_token')
-          const { error } = await supabase.auth.setSession({
+    setStatus('processing')
+
+    const handleAuth = async () => {
+      const supabase = createClient()
+
+      // Handle error from Supabase
+      if (error) {
+        setStatus('error')
+        setErrorMsg(searchParams.get('error_description') || error)
+        return
+      }
+
+      // Check for session first (implicit flow auto-detects)
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
+        setStatus('success')
+        setTimeout(() => {
+          window.location.href = '/tool'
+        }, 500)
+        return
+      }
+
+      // Try implicit flow tokens from hash
+      if (hasTokenInHash) {
+        const params = new URLSearchParams(hash.substring(1))
+        const accessToken = params.get('access_token')
+        const refreshToken = params.get('refresh_token')
+        
+        if (accessToken) {
+          const { error: setError } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken || '',
           })
           
-          if (error) {
-            setStatus('error')
-            setErrorMsg(error.message)
+          if (!setError) {
+            setStatus('success')
+            setTimeout(() => {
+              window.location.href = '/tool'
+            }, 500)
             return
           }
-          
-          setStatus('success')
-          setTimeout(() => {
-            window.location.href = '/tool'
-          }, 500)
-        } catch (err: any) {
-          setStatus('error')
-          setErrorMsg(err?.message || 'Failed to set session')
         }
       }
-      
-      setSession()
-      return
-    }
-    
-    // Only process code once
-    if (!code || processedRef.current) return
-    processedRef.current = true
-    
-    setStatus('processing')
-    
-    const handleAuth = async () => {
-      try {
-        console.log('🔐 Exchanging code for session (home page handler)...')
-        
-        // Use the browser client which has the PKCE verifier stored
+
+      // Try code exchange (PKCE fallback)
+      if (code) {
         const { data, error: authError } = await supabase.auth.exchangeCodeForSession(code)
         
-        console.log('📦 Exchange result:', { hasSession: !!data?.session, error: authError?.message })
-        
         if (!authError && data?.session) {
-          console.log('✅ Session created!')
           setStatus('success')
           setTimeout(() => {
             window.location.href = '/tool'
           }, 500)
           return
         }
-
-        // Exchange failed
-        console.error('❌ Code exchange failed:', authError)
-        setStatus('error')
-        setErrorMsg(authError?.message || 'Login link expired or already used.')
-        
-      } catch (err: any) {
-        console.error('Auth exception:', err)
-        setStatus('error')
-        setErrorMsg('Login link expired or already used. Please request a new one.')
       }
+
+      // Nothing worked
+      setStatus('error')
+      setErrorMsg('Login link expired. Please request a new one.')
     }
-    
-    handleAuth()
+
+    setTimeout(handleAuth, 100)
   }, [searchParams])
 
   if (status === 'idle') return null

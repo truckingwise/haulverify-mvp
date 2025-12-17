@@ -9,80 +9,84 @@ export default function AuthCallbackPage() {
 
   useEffect(() => {
     const handleAuth = async () => {
-      try {
-        // Use the SAME client as login page (critical for PKCE!)
-        const supabase = createClient()
+      const supabase = createClient()
 
-        // Check URL hash for tokens (implicit flow)
-        const hash = window.location.hash
-        if (hash) {
-          const params = new URLSearchParams(hash.substring(1))
-          const accessToken = params.get('access_token')
-          const refreshToken = params.get('refresh_token')
-          
-          if (accessToken) {
-            const { error } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken || '',
-            })
-            
-            if (!error) {
-              setStatus('success')
-              setTimeout(() => {
-                window.location.href = '/tool'
-              }, 500)
-              return
-            }
-          }
-        }
+      // First, check if there's already a session (implicit flow auto-detects from URL hash)
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      
+      if (session) {
+        console.log('✅ Session found!')
+        setStatus('success')
+        setTimeout(() => {
+          window.location.href = '/tool'
+        }, 500)
+        return
+      }
 
-        // Check URL params for code
-        const params = new URLSearchParams(window.location.search)
-        const code = params.get('code')
-        const errorParam = params.get('error')
+      // Check URL hash for tokens (implicit flow puts tokens in hash)
+      const hash = window.location.hash
+      if (hash && hash.includes('access_token')) {
+        console.log('🔑 Found tokens in URL hash')
+        const params = new URLSearchParams(hash.substring(1))
+        const accessToken = params.get('access_token')
+        const refreshToken = params.get('refresh_token')
         
-        if (errorParam) {
-          setStatus('error')
-          setErrorMsg(params.get('error_description') || errorParam)
-          return
-        }
-
-        if (code) {
-          console.log('🔐 Exchanging code for session...')
+        if (accessToken) {
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken || '',
+          })
           
-          // Use the browser client which has the PKCE verifier stored
-          const { data, error: authError } = await supabase.auth.exchangeCodeForSession(code)
-          
-          console.log('📦 Exchange result:', { hasSession: !!data?.session, error: authError?.message })
-          
-          if (!authError && data?.session) {
-            console.log('✅ Session created!')
+          if (!error) {
             setStatus('success')
             setTimeout(() => {
               window.location.href = '/tool'
             }, 500)
             return
           }
+          console.error('Failed to set session:', error)
+        }
+      }
 
-          // If PKCE exchange failed, log the error
-          console.error('❌ Code exchange failed:', authError)
-          setStatus('error')
-          setErrorMsg(authError?.message || 'Login link expired or already used.')
+      // Check for code (PKCE flow - fallback)
+      const params = new URLSearchParams(window.location.search)
+      const code = params.get('code')
+      const errorParam = params.get('error')
+      
+      if (errorParam) {
+        setStatus('error')
+        setErrorMsg(params.get('error_description') || errorParam)
+        return
+      }
+
+      if (code) {
+        console.log('🔐 Trying code exchange...')
+        const { data, error: authError } = await supabase.auth.exchangeCodeForSession(code)
+        
+        if (!authError && data?.session) {
+          setStatus('success')
+          setTimeout(() => {
+            window.location.href = '/tool'
+          }, 500)
           return
         }
-
-        // No code or tokens found
+        
+        console.error('Code exchange failed:', authError)
         setStatus('error')
-        setErrorMsg('Invalid login link.')
-
-      } catch (err: any) {
-        console.error('Auth error:', err)
-        setStatus('error')
-        setErrorMsg(err?.message || 'Authentication failed')
+        setErrorMsg('Login link expired. Please request a new one.')
+        return
       }
+
+      // Nothing worked
+      if (sessionError) {
+        console.error('Session error:', sessionError)
+      }
+      setStatus('error')
+      setErrorMsg('Unable to complete sign in. Please try again.')
     }
 
-    handleAuth()
+    // Small delay to let Supabase client initialize and detect session from URL
+    setTimeout(handleAuth, 100)
   }, [])
 
   return (

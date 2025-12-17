@@ -9,12 +9,21 @@ export function createClient() {
     return {
       auth: {
         getUser: async () => ({ data: { user: null }, error: null }),
+        getSession: async () => ({ data: { session: null }, error: null }),
         signOut: async () => ({ error: null }),
         signInWithOtp: async () => ({ data: null, error: null }),
+        exchangeCodeForSession: async () => ({ data: { session: null }, error: null }),
+        setSession: async () => ({ data: { session: null }, error: null }),
         onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
       },
     } as any
   }
 
-  return createBrowserClient(supabaseUrl, supabaseKey)
+  return createBrowserClient(supabaseUrl, supabaseKey, {
+    auth: {
+      flowType: 'implicit',  // Use implicit flow - no PKCE verifier needed!
+      detectSessionInUrl: true,
+      persistSession: true,
+    }
+  })
 }
