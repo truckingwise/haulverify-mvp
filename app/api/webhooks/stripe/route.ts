@@ -154,4 +154,5 @@ export async function POST(request: Request) {
 
 // Needed to handle raw body for signature verification
 export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
