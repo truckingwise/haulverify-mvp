@@ -36,17 +36,18 @@ export default function LoginPage() {
       
       console.log('✅ Supabase client created')
       
-      // Use consistent domain to avoid PKCE mismatch
-      const redirectUrl = process.env.NEXT_PUBLIC_BASE_URL 
-        ? `${process.env.NEXT_PUBLIC_BASE_URL}/auth/callback`
-        : `${window.location.origin}/auth/callback`
+      // ALWAYS use current origin - PKCE verifier is stored per-domain in sessionStorage
+      // If we redirect to a different domain, the verifier won't be found!
+      const redirectUrl = `${window.location.origin}/auth/callback`
       
-      console.log('🔗 Using redirect URL:', redirectUrl)
+      console.log('🔗 Using redirect URL (same origin as login):', redirectUrl)
       
       const { data, error } = await supabase.auth.signInWithOtp({
         email,
         options: {
           emailRedirectTo: redirectUrl,
+          // Use implicit flow to avoid PKCE verifier issues across browsers
+          shouldCreateUser: false,
         },
       })
 
