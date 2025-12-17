@@ -11,13 +11,23 @@ export default function Hero() {
       
       {/* Minimal Logo Header */}
       <div className="max-w-6xl mx-auto w-full pt-6 lg:pt-8 relative z-10">
-        <div className="flex items-center gap-2">
-          {/* Shield icon */}
-          <svg className="w-7 h-7 text-purple-300" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-            <path d="M9 12l2 2 4-4" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-          <span className="text-lg font-bold text-white/90 tracking-tight">HaulVerify</span>
+        <div className="flex items-center justify-between">
+          {/* Logo */}
+          <div className="flex items-center gap-2">
+            <svg className="w-7 h-7 text-purple-300" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <path d="M9 12l2 2 4-4" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span className="text-lg font-bold text-white/90 tracking-tight">HaulVerify</span>
+          </div>
+          
+          {/* Login link */}
+          <Link 
+            href="/login"
+            className="text-sm font-medium text-purple-200 hover:text-white transition-colors px-4 py-2 rounded-lg hover:bg-white/10"
+          >
+            Login →
+          </Link>
         </div>
       </div>
       
