@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 
@@ -12,22 +12,34 @@ export default function ToolPage() {
   const [result, setResult] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
-  const supabase = useMemo(() => createClient(), [])
 
   useEffect(() => {
     const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
+      try {
+        const supabase = createClient()
+        const { data: { user }, error } = await supabase.auth.getUser()
+        
+        if (error || !user) {
+          // Clear any stale cookies and redirect
+          await supabase.auth.signOut()
+          router.push('/login')
+          return
+        }
+        
+        setUser(user)
+      } catch (err) {
+        console.error('Auth check failed:', err)
         router.push('/login')
-        return
+      } finally {
+        setLoading(false)
       }
-      setUser(user)
-      setLoading(false)
     }
+    
     getUser()
-  }, [router, supabase.auth])
+  }, [router])
 
   const handleLogout = async () => {
+    const supabase = createClient()
     await supabase.auth.signOut()
     router.push('/')
   }
@@ -41,7 +53,6 @@ export default function ToolPage() {
     setResult(null)
 
     try {
-      // Clean the MC number - remove "MC" prefix if present
       const cleanMC = mcNumber.replace(/^MC-?/i, '').trim()
       
       const response = await fetch(
@@ -63,7 +74,6 @@ export default function ToolPage() {
       const brokerStatus = carrier.brokerAuthorityStatus
       const allowedToOperate = carrier.allowedToOperate
 
-      // Determine risk level
       let riskLevel: 'green' | 'yellow' | 'red' = 'yellow'
       let riskLabel = ''
       let riskDescription = ''
@@ -111,14 +121,20 @@ export default function ToolPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin"></div>
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-500">Loading...</p>
+        </div>
       </div>
     )
   }
 
+  if (!user) {
+    return null
+  }
+
   return (
     <main className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -141,15 +157,12 @@ export default function ToolPage() {
         </div>
       </header>
 
-      {/* Main Content */}
       <div className="max-w-2xl mx-auto px-6 py-12">
-        {/* Tool Header */}
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-gray-900 mb-1">Broker Verification Tool</h1>
           <p className="text-gray-600">V1 Lifetime Access</p>
         </div>
 
-        {/* Search Form */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
           <form onSubmit={handleCheck} className="space-y-4">
             <div>
@@ -185,17 +198,14 @@ export default function ToolPage() {
           </form>
         </div>
 
-        {/* Error */}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
             <p className="text-red-800">{error}</p>
           </div>
         )}
 
-        {/* Results */}
         {result && (
           <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-            {/* Risk Badge */}
             <div className={`p-4 text-center ${
               result.riskLevel === 'green' ? 'bg-green-500' :
               result.riskLevel === 'yellow' ? 'bg-yellow-500' :
@@ -205,7 +215,6 @@ export default function ToolPage() {
               <p className="text-white/90 text-sm">{result.riskDescription}</p>
             </div>
 
-            {/* Details */}
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -235,7 +244,6 @@ export default function ToolPage() {
               </div>
             </div>
 
-            {/* Disclaimer */}
             <div className="bg-gray-50 px-6 py-4 border-t border-gray-100">
               <p className="text-xs text-gray-500">
                 Data from public FMCSA records. This is a risk signal, not a guarantee. Always use your judgment.
@@ -244,7 +252,6 @@ export default function ToolPage() {
           </div>
         )}
 
-        {/* Empty State */}
         {!result && !error && (
           <div className="text-center py-8 text-gray-500">
             <p>Enter an MC number above to check a broker</p>
@@ -254,5 +261,3 @@ export default function ToolPage() {
     </main>
   )
 }
-
-
