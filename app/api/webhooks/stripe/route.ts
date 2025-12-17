@@ -50,6 +50,7 @@ export async function POST(request: Request) {
       try {
         const supabaseAdmin = createAdminClient()
 
+        // Try to create new user
         const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
           email: customerEmail,
           email_confirm: true,
@@ -61,7 +62,23 @@ export async function POST(request: Request) {
         })
 
         if (createError) {
-          console.log('👤 User may already exist:', createError.message)
+          console.log('👤 User may already exist, updating metadata...')
+          
+          // User exists - update their metadata to grant access
+          const { data: users } = await supabaseAdmin.auth.admin.listUsers()
+          const existingUser = users?.users?.find(u => u.email === customerEmail)
+          
+          if (existingUser) {
+            await supabaseAdmin.auth.admin.updateUserById(existingUser.id, {
+              user_metadata: {
+                ...existingUser.user_metadata,
+                has_v1_access: true,
+                stripe_customer_id: stripeCustomerId,
+                purchase_date: new Date().toISOString(),
+              },
+            })
+            console.log('✅ Updated existing user with V1 access:', existingUser.id)
+          }
         } else {
           console.log('✅ Created new user:', newUser.user?.id)
         }
