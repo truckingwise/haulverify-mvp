@@ -36,10 +36,17 @@ export default function LoginPage() {
       
       console.log('✅ Supabase client created')
       
+      // Use consistent domain to avoid PKCE mismatch
+      const redirectUrl = process.env.NEXT_PUBLIC_BASE_URL 
+        ? `${process.env.NEXT_PUBLIC_BASE_URL}/auth/callback`
+        : `${window.location.origin}/auth/callback`
+      
+      console.log('🔗 Using redirect URL:', redirectUrl)
+      
       const { data, error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: redirectUrl,
         },
       })
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { createClient } from '@/lib/supabase'
+import { createClient } from '@supabase/supabase-js'
 
 export default function AuthCodeHandler() {
   const searchParams = useSearchParams()
@@ -12,45 +12,78 @@ export default function AuthCodeHandler() {
 
   useEffect(() => {
     const code = searchParams.get('code')
+    const error = searchParams.get('error')
+    const errorDescription = searchParams.get('error_description')
     
-    // Only process once
+    // Handle error from Supabase
+    if (error) {
+      setStatus('error')
+      setErrorMsg(errorDescription || error)
+      return
+    }
+    
+    // Only process code once
     if (!code || processedRef.current) return
     processedRef.current = true
     
     setStatus('processing')
-    console.log('🔐 Auth code detected:', code.substring(0, 8) + '...')
     
     const handleAuth = async () => {
       try {
-        const supabase = createClient()
-        console.log('🔄 Exchanging code for session...')
+        // Create a fresh Supabase client
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+        const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
         
-        const { data, error } = await supabase.auth.exchangeCodeForSession(code)
-        
-        if (error) {
-          console.error('❌ Auth error:', error.message)
+        if (!supabaseUrl || !supabaseKey) {
           setStatus('error')
-          setErrorMsg(error.message)
+          setErrorMsg('Configuration error')
           return
         }
+
+        const supabase = createClient(supabaseUrl, supabaseKey)
         
-        if (data.session) {
-          console.log('✅ Session created!')
-          setStatus('success')
+        // Try to exchange the code
+        const { data, error: authError } = await supabase.auth.exchangeCodeForSession(code)
+        
+        if (authError) {
+          // If PKCE fails, the code might be a magic link token
+          // Try verifying as OTP token
+          console.log('Code exchange failed, trying OTP verify...')
           
-          // Small delay to ensure cookies are set
+          const { data: otpData, error: otpError } = await supabase.auth.verifyOtp({
+            token_hash: code,
+            type: 'email',
+          })
+          
+          if (otpError) {
+            console.error('Both methods failed')
+            setStatus('error')
+            setErrorMsg('Link expired or already used. Please request a new login link.')
+            return
+          }
+          
+          if (otpData.session) {
+            setStatus('success')
+            setTimeout(() => {
+              window.location.href = '/tool'
+            }, 500)
+            return
+          }
+        }
+        
+        if (data?.session) {
+          setStatus('success')
           setTimeout(() => {
             window.location.href = '/tool'
           }, 500)
         } else {
-          console.error('❌ No session returned')
           setStatus('error')
-          setErrorMsg('No session created')
+          setErrorMsg('Could not create session. Please try again.')
         }
       } catch (err: any) {
-        console.error('❌ Exception:', err)
+        console.error('Auth exception:', err)
         setStatus('error')
-        setErrorMsg(err?.message || 'Unknown error')
+        setErrorMsg('Link expired or already used. Please request a new login link.')
       }
     }
     
@@ -90,12 +123,12 @@ export default function AuthCodeHandler() {
               </svg>
             </div>
             <p className="text-white text-xl font-semibold">Sign in failed</p>
-            <p className="text-red-300 mt-2">{errorMsg}</p>
+            <p className="text-purple-200 mt-2 text-sm">{errorMsg}</p>
             <a 
               href="/login" 
               className="inline-block mt-6 px-6 py-3 bg-white text-purple-900 font-semibold rounded-lg hover:bg-purple-100"
             >
-              Try Again
+              Request New Link
             </a>
           </>
         )}
