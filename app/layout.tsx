@@ -1,6 +1,8 @@
+import './globals.css'
+
 export const metadata = {
-  title: 'HaulVerify - Broker BS Detector',
-  description: 'Verify broker MC numbers instantly',
+  title: 'HaulVerify V1 - Check Brokers Before You Haul',
+  description: 'Instant red/yellow/green risk signals for broker MC numbers. Lifetime access to V1.',
 }
 
 export default function RootLayout({
@@ -9,8 +11,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" style={{ margin: 0, padding: 0, width: '100%', height: '100%', overflow: 'hidden' }}>
-      <body style={{ margin: 0, padding: 0, width: '100%', height: '100%', overflow: 'hidden' }}>{children}</body>
+    <html lang="en">
+      <body className="antialiased">{children}</body>
     </html>
   )
 }
