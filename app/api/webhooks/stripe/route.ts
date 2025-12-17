@@ -51,15 +51,10 @@ export async function POST(request: Request) {
       try {
         const supabaseAdmin = createAdminClient()
 
-        // Check if user already exists
-        const { data: existingUsers, error: listError } = await supabaseAdmin.auth.admin.listUsers()
+        // Check if user already exists by email
+        const { data: userData, error: getUserError } = await supabaseAdmin.auth.admin.getUserByEmail(customerEmail)
         
-        if (listError) {
-          console.error('❌ Error listing users:', listError)
-          throw listError
-        }
-
-        const existingUser = existingUsers.users.find(u => u.email === customerEmail)
+        const existingUser = getUserError ? null : userData?.user
 
         if (existingUser) {
           console.log('👤 User already exists:', existingUser.id)
