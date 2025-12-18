@@ -42,9 +42,9 @@ export default function Hero() {
             </div>
             
             {/* Headline with hierarchy */}
-            <div className="mb-6 space-y-2">
+            <div className="mb-6 space-y-1">
               <h1 className="text-3xl lg:text-4xl font-medium text-white leading-tight tracking-tight">
-                Double-Brokers Cost You <span className="font-bold">$5,000+</span> Per Load
+                Double-Brokers Cost You <span className="font-bold whitespace-nowrap">$5,000+ Per Load</span>
               </h1>
               <h2 className="text-3xl lg:text-4xl font-medium text-white leading-tight tracking-tight">
                 Verify Any Broker in 3 Seconds
