@@ -42,15 +42,12 @@ export default function Hero() {
             </div>
             
             {/* Headline with hierarchy */}
-            <div className="mb-6 space-y-1">
-              <p className="text-2xl lg:text-3xl font-semibold text-purple-200 tracking-tight">
-                One Bad Broker Can Cost You
-              </p>
-              <h1 className="text-4xl lg:text-5xl font-bold text-white leading-none tracking-tight">
-                $5,000+
+            <div className="mb-6 space-y-2">
+              <h1 className="text-3xl lg:text-4xl font-medium text-white leading-tight tracking-tight">
+                Double-Brokers Cost You <span className="font-bold">$5,000+</span> Per Load
               </h1>
-              <h2 className="text-3xl lg:text-5xl font-bold text-gray-100 leading-tight tracking-tight">
-                Check Them in 10 Seconds.
+              <h2 className="text-3xl lg:text-4xl font-medium text-white leading-tight tracking-tight">
+                Verify Any Broker in 3 Seconds
               </h2>
             </div>
             
