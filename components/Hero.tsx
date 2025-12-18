@@ -46,8 +46,8 @@ export default function Hero() {
               <p className="text-2xl lg:text-3xl font-semibold text-purple-200 tracking-tight">
                 One Bad Broker Can Cost You
               </p>
-              <h1 className="text-6xl lg:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-500 via-orange-400 to-orange-600 leading-none tracking-tight animate-gradient">
-                $5,000
+              <h1 className="text-4xl lg:text-5xl font-bold text-white leading-none tracking-tight">
+                $5,000+
               </h1>
               <h2 className="text-3xl lg:text-5xl font-bold text-gray-100 leading-tight tracking-tight">
                 Check Them in 10 Seconds.
