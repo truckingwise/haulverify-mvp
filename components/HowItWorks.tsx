@@ -9,8 +9,8 @@ export default function HowItWorks() {
     {
       number: 2,
       icon: '🔍',
-      title: 'Enter MC or DOT',
-      description: "Paste the broker's MC or DOT number and hit search."
+      title: 'Enter the MC or DOT',
+      description: "Paste the MC or DOT from whoever is offering the load and hit search."
     },
     {
       number: 3,

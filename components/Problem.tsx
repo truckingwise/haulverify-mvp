@@ -1,8 +1,8 @@
 export default function Problem() {
   const painPoints = [
-    'You deliver on time. They ghost you for weeks—or forever.',
-    "Turns out they're a double broker. Real shipper already paid someone else.",
-    'You waste 20 hours chasing $4,800. Your bills don\'t wait.'
+    'You haul the load. Then they disappear.',
+    "You later find out the 'broker' was actually a carrier reselling the load.",
+    'You spend days chasing money you already earned.'
   ]
 
   return (
@@ -15,7 +15,7 @@ export default function Problem() {
       <div className="max-w-4xl mx-auto relative z-10">
         {/* Headline */}
         <h2 className="text-3xl lg:text-4xl font-bold text-white text-center mb-10 tracking-tight">
-          Here's What Happens When You Trust the Wrong Broker
+          Here's What Happens When the Broker Isn't a Broker
         </h2>
         
         {/* Pain bullets */}

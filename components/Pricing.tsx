@@ -28,12 +28,13 @@ export default function Pricing() {
                 $47
               </span>
               <p className="text-lg text-gray-600 mt-2 font-normal">One-Time Payment</p>
+              <p className="text-sm text-gray-500 mt-1">V1 is lifetime access. Future versions (V2+) will be sold separately.</p>
             </div>
             
             {/* Features list */}
             <div className="space-y-3 mb-8">
               {[
-                'Unlimited broker lookups',
+                'Unlimited MC/DOT checks',
                 'Instant risk signals',
                 'Works on any device',
                 'Lifetime V1 access'
