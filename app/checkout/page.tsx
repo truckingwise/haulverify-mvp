@@ -1,13 +1,35 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
+
+// Declare fbq for TypeScript
+declare global {
+  interface Window {
+    fbq?: (...args: any[]) => void
+  }
+}
 
 export default function CheckoutPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const hasTracked = useRef(false)
 
   useEffect(() => {
+    // Fire Meta Pixel InitiateCheckout event exactly once
+    if (!hasTracked.current && typeof window !== 'undefined' && window.fbq) {
+      window.fbq('track', 'InitiateCheckout', {
+        value: 47.00,
+        currency: 'USD'
+      })
+      hasTracked.current = true
+    }
+
+    // Small delay before redirecting (800-1200ms range)
+    const redirectDelay = setTimeout(() => {
+      createCheckout()
+    }, 1000)
+
     const createCheckout = async () => {
       try {
         const response = await fetch('/api/create-checkout', {
@@ -32,7 +54,7 @@ export default function CheckoutPage() {
       }
     }
 
-    createCheckout()
+    return () => clearTimeout(redirectDelay)
   }, [])
 
   if (error) {
@@ -62,8 +84,8 @@ export default function CheckoutPage() {
       <div className="max-w-md w-full bg-white rounded-2xl p-8 text-center shadow-2xl">
         {/* Loading spinner */}
         <div className="w-16 h-16 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin mx-auto mb-6"></div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Redirecting to Checkout</h1>
-        <p className="text-gray-600">Please wait while we connect you to our secure payment processor...</p>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Redirecting you to secure Stripe checkout…</h1>
+        <p className="text-gray-600">Please wait a moment.</p>
       </div>
     </main>
   )
